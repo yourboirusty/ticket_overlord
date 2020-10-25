@@ -48,7 +48,10 @@ INSTALLED_APPS = [
     'django_redis',
     'rest_framework',
     'dynamic_rest',
+    'django_celery_results',
+    'celery.contrib.testing',
     'event',
+    'payment',
 ]
 
 MIDDLEWARE = [
@@ -105,6 +108,8 @@ CELERY_TIMEZONE = "Australia/Tasmania"
 CELERY_TASK_TRACK_STARTED = True
 # Max task time limit is 15 minutes
 CELERY_TASK_TIME_LIMIT = 60 * 15
+
+CELERY_CACHE_BACKEND = 'django-cache'
 
 CELERY_BROKER_URL = os.environ.get("REDIS_SERVICE",
                                    "redis://ticket_redis:6379")

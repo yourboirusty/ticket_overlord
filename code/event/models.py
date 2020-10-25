@@ -1,13 +1,17 @@
 from django.db import models
-from django.db.models import Q
 from django.utils import timezone
 from datetime import timedelta
 from django.utils.functional import cached_property
 from django.dispatch import receiver
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import (post_save,
+                                      pre_save,
+                                      pre_delete,
+                                      post_delete)
 from django.db.models import Sum, Avg
 from django.conf import settings
 from event.exceptions import EventStartedError, NotEnoughTicketsError
+from .tasks import remove_on_timeout
+from celery.result import AsyncResult
 
 
 class Event(models.Model):
@@ -41,9 +45,7 @@ class AvailableTickets(models.Model):
 
     @cached_property
     def reservation_amount(self):
-        time_delta = timezone.now() - timedelta(minutes=15)
-        query = Q(created__gte=time_delta) | Q(validated=True)
-        reserved = self.reservations.filter(query).aggregate(Sum('amount'))
+        reserved = self.reservations.aggregate(Sum('amount'))
         amount = reserved.get('amount__sum')
         if not amount:
             amount = 0
@@ -56,9 +58,7 @@ class AvailableTickets(models.Model):
 
     @cached_property
     def reservation_avg_amount(self):
-        time_delta = timezone.now() - timedelta(minutes=15)
-        query = Q(created__gte=time_delta) | Q(validated=True)
-        reserved = self.reservations.filter(query).aggregate(Avg('amount'))
+        reserved = self.reservations.aggregate(Avg('amount'))
         avg = reserved.get('amount__avg')
         if not avg:
             avg = 0
@@ -66,8 +66,7 @@ class AvailableTickets(models.Model):
 
     @cached_property
     def reservation_count(self):
-        time_delta = timezone.now() - timedelta(minutes=15)
-        return self.reservations.filter(created__gte=time_delta).count()
+        return self.reservations.count()
 
     def reload_reservation_cache(self):
         for key in ['reservation_amount',
@@ -95,12 +94,14 @@ class Reservation(models.Model):
                                on_delete=models.CASCADE)
     created = models.DateTimeField("Reservation creation datetime",
                                    auto_now_add=True)
-    ticket_type = models.ForeignKey("AvailableTickets",
+    purge_id = models.CharField("ID of celery purge task",
+                                max_length=256,
+                                null=True)
+    ticket_type = models.ForeignKey("event.AvailableTickets",
                                     related_name="reservations",
                                     verbose_name="Ticket that's reserved",
                                     on_delete=models.CASCADE)
     amount = models.IntegerField(default=1)
-    validated = models.BooleanField("Reservation paid", default=False)
 
     class Meta:
         unique_together = ['client', 'ticket_type']
@@ -128,6 +129,24 @@ def validate_reservation(sender, instance, *args, **kwargs):
             ))
 
 
-@receiver([post_save], sender=Reservation)
-def reset_cache(sender, instance, created, *args, **kwargs):
+@receiver(pre_delete, sender=Reservation)
+def remove_task(sender, instance, *args, **kwargs):
+    res = AsyncResult(instance.purge_id)
+    res.revoke()
+    instance.ticket_copy = instance.ticket_type
+
+
+@receiver(post_delete, sender=Reservation)
+def refresh_cache(sender, instance, *args, **kwargs):
+    instance.ticket_copy.reload_reservation_cache()
+    del instance.ticket_copy
+
+
+@receiver(post_save, sender=Reservation)
+def reset_cache_on_create(sender, instance, created, *args, **kwargs):
+    if created:
+        task = remove_on_timeout.apply_async((instance.id,),
+                                             countdown=(60*15))
+        instance.purge_id = task.id
+        instance.save()
     instance.ticket_type.reload_reservation_cache()

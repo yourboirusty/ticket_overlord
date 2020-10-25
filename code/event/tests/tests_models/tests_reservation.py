@@ -1,27 +1,33 @@
-from django.test import TestCase
+from django.test import TransactionTestCase
 from django.utils import timezone
 from datetime import timedelta
 from event.models import Event, AvailableTickets, Reservation
 from event.exceptions import EventStartedError, NotEnoughTicketsError
+from event.tasks import remove_on_timeout
+from celery.result import AsyncResult
 from django.contrib.auth import get_user_model
-import mock
+from celery.contrib.testing.worker import start_worker
+from config.celery import app
 
 
 User = get_user_model()
 now = timezone.now()
 
 
-class AvailableTicketsTestCase(TestCase):
+class AvailableTicketsTestCase(TransactionTestCase):
+    allow_database_queries = True
 
-    @mock.patch('django.utils.timezone.now',
-                lambda: now - timedelta(minutes=30))
-    def make_old_reservation(self, amount=3,
-                             ticket_type=0):
-        self.old_reservation = Reservation.objects.create(
-            ticket_type=ticket_type,
-            client=self.users.pop(),
-            amount=amount
-        )
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        app.loader.import_module('celery.contrib.testing.tasks')
+        cls.celery_worker = start_worker(app)
+        cls.celery_worker.__enter__()
+
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        cls.celery_worker.__exit__(None, None, None)
 
     def setUp(self):
         self.event = Event.objects.create(name="Test Event",
@@ -50,14 +56,21 @@ class AvailableTicketsTestCase(TestCase):
             ticket_type=self.normal_ticket,
             amount=2
         )
-        self.make_old_reservation(ticket_type=self.vip_ticket)
 
-    def test_timeout_checking(self):
-        self.assertTrue(self.reservation.check_validity())
-        self.assertFalse(self.old_reservation.check_validity())
-        self.old_reservation.validated = True
-        self.old_reservation.save()
-        self.assertTrue(self.old_reservation.check_validity())
+    def test_purge_task_creation(self):
+        self.assertIsNotNone(self.reservation.purge_id)
+        res = AsyncResult(self.reservation.purge_id)
+        self.assertIsNotNone(res.id)
+
+    def test_purge_task_completion(self):
+        res = AsyncResult(self.reservation.purge_id)
+        res.revoke()
+        res = remove_on_timeout.apply_async((self.reservation.id,),
+                                            countdown=2)
+        res = res.get()
+        with self.assertRaises(Reservation.DoesNotExist):
+            self.reservation.refresh_from_db()
+        self.assertEqual(self.normal_ticket.available, 100)
 
     def test_event_started(self):
         self.event.date = now - timedelta(days=1)
