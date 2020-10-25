@@ -30,13 +30,8 @@ class AvailableTicketsTestCase(TestCase):
                 User.objects.create_user(username="user"+str(n),
                                          password="pwd"+str(n))
             )
-        self.old_reservation = Reservation.objects.create(
-            client=self.user_old,
-            ticket_type=self.av_ticket,
-            amount=3)
 
     def test_cache_reload(self):
-        self.old_reservation.delete()
         self.assertEqual(self.av_ticket.available, 100)
         self.av_ticket.amount = 40
         self.av_ticket.save()
@@ -46,13 +41,12 @@ class AvailableTicketsTestCase(TestCase):
         self.assertEqual(self.av_ticket.available, 40)
 
     def test_reserve(self):
-        self.assertEqual(self.av_ticket.reservations.count(), 1)
+        self.assertEqual(self.av_ticket.reservations.count(), 0)
         reservation = self.av_ticket.reserve(self.users.pop())
         self.assertIsNotNone(reservation.id)
-        self.assertEqual(self.av_ticket.reservations.count(), 2)
-        self.assertEqual(reservation.amount, 1)
+        self.assertEqual(self.av_ticket.reservations.count(), 1)
         reservation = self.av_ticket.reserve(self.users.pop(), amount=2)
-        self.assertEqual(reservation.amount, 2)
+        self.assertEqual(self.av_ticket.reservations.count(), 2)
 
     def test_check_count(self):
         self.assertEqual(self.av_ticket.reservation_count, 0)
@@ -61,17 +55,14 @@ class AvailableTicketsTestCase(TestCase):
         self.assertEqual(self.av_ticket.reservation_count, 2)
 
     def test_check_amount(self):
-        self.assertEqual(timezone.now() > timezone.now() - timedelta(15), True)
         self.assertEqual(self.av_ticket.reservation_amount, 0)
         t1 = self.av_ticket.reserve(amount=2, user=self.users.pop())
         t2 = self.av_ticket.reserve(amount=2, user=self.users.pop())
         self.assertIsNotNone(t1.id)
         self.assertIsNotNone(t2.id)
-        self.av_ticket.reload_reservation_cache()
         self.assertEqual(self.av_ticket.reservation_amount, 4)
 
     def test_check_avg(self):
-        self.assertEqual(self.av_ticket.reservation_avg_amount, 0)
         self.assertEqual(self.av_ticket.reservation_avg_amount, 0)
         self.av_ticket.reserve(amount=2, user=self.users.pop())
         self.assertEqual(self.av_ticket.reservation_avg_amount, 2.0)
