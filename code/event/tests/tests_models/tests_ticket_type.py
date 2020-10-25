@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 from datetime import timedelta
-from event.models import Event, AvailableTickets, Reservation
+from event.models import Event, AvailableTickets
 from django.contrib.auth import get_user_model
 import mock
 
@@ -22,8 +22,6 @@ class AvailableTicketsTestCase(TestCase):
             price=15,
             amount=100
         )
-        self.user_old = User.objects.create_user(username="oldUser",
-                                                 password="testpassword")
         self.users = list()
         for n in range(6):
             self.users.append(

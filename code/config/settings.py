@@ -47,11 +47,11 @@ INSTALLED_APPS = [
     'django.contrib.sites',
     'django_redis',
     'rest_framework',
-    'dynamic_rest',
     'django_celery_results',
     'celery.contrib.testing',
     'event',
     'payment',
+    'rest_framework.authtoken',
 ]
 
 MIDDLEWARE = [
@@ -63,6 +63,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+LOGIN_REDIRECT_URL = '/reservations'
 
 ROOT_URLCONF = 'config.urls'
 
@@ -129,8 +131,6 @@ CACHES = {
                                    "redis://ticket_redis:6379"),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": os.environ.get("REDIS_PASSWORD",
-                                       "secret_password"),
         },
         "KEY_PREFIX": "example"
     }
@@ -150,9 +150,9 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS':
         'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 25,
-    'DEFAULT_RENDERER_CLASSES': [
-        'rest_framework.renderers.JSONRenderer',
-        'dynamic_rest.renderers.DynamicBrowsableAPIRenderer',
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication'
     ],
 }
 
