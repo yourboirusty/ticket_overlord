@@ -62,6 +62,17 @@ class AvailableTicketsTestCase(TransactionTestCase):
         res = AsyncResult(self.reservation.purge_id)
         self.assertIsNotNone(res.id)
 
+    def test_purge_task_revoke_on_delete(self):
+        purge_id = self.reservation.purge_id
+        self.reservation.delete()
+        celery_inspect = app.control.inspect()
+        revoked = list(celery_inspect.revoked().values())
+        removed = False
+        for table in revoked:
+            if purge_id in table:
+                removed = True
+        self.assertTrue(removed)
+
     def test_purge_task_completion(self):
         res = AsyncResult(self.reservation.purge_id)
         res.revoke()
