@@ -3,6 +3,7 @@ from rest_framework.viewsets import GenericViewSet
 from event.models import Event, AvailableTickets, Reservation
 from rest_framework.permissions import IsAuthenticated
 from event.serializers import (EventSerializer,
+                               DetailedEventSerializer,
                                TicketStatusSerializer,
                                ReservationSerializer)
 
@@ -18,6 +19,12 @@ class EventViewset(mixins.RetrieveModelMixin,
                    GenericViewSet):
     queryset = Event.objects.all()
     serializer_class = EventSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return DetailedEventSerializer
+        else:
+            return EventSerializer
 
 
 class ReservationViewset(mixins.RetrieveModelMixin,

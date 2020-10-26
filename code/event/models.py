@@ -16,9 +16,7 @@ from celery.result import AsyncResult
 
 class Event(models.Model):
     name = models.CharField("Event name", max_length=50)
-    date = models.DateField("Event date and time",
-                            auto_now=False,
-                            auto_now_add=False)
+    date = models.DateTimeField("Event date and time")
 
     class Meta:
         ordering = ['date']
