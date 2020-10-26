@@ -7,7 +7,7 @@ from django.db.models.signals import (post_save,
                                       pre_save,
                                       pre_delete,
                                       post_delete)
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, F
 from django.conf import settings
 from event.exceptions import EventStartedError, NotEnoughTicketsError
 from .tasks import remove_on_timeout
@@ -17,12 +17,38 @@ from celery.result import AsyncResult
 class Event(models.Model):
     name = models.CharField("Event name", max_length=50)
     date = models.DateTimeField("Event date and time")
-
     class Meta:
         ordering = ['date']
 
     def can_reserve(self):
         return self.date > timezone.now()
+
+    def __str__(self):
+        return self.name
+
+    @cached_property
+    def reservation_amount(self):
+        return Reservation.objects.filter(
+            ticket_type__event=self
+        ).aggregate(Sum('amount')).get('amount__sum')
+
+    @cached_property
+    def sold_amount(self):
+        return Reservation.objects.filter(
+            ticket_type__event=self,
+            validated=True
+        ).aggregate(Sum('amount')).get('amount__sum')
+
+    @cached_property
+    def profit(self):
+        profit = Reservation.objects.filter(
+            ticket_type__event=self,
+            validated=True
+        ).aggregate(
+            profit=Sum(F('amount') * F('ticket_type__price')))['profit']
+        if profit is None:
+            profit = 0
+        return profit
 
 
 class AvailableTickets(models.Model):
@@ -41,36 +67,67 @@ class AvailableTickets(models.Model):
     price = models.IntegerField("Price in EUR")
     amount = models.IntegerField("Pool of tickets")
 
+    def __str__(self):
+        return "{0} - {1}".format(
+            str(self.event),
+            self.ticket_type
+        )
+
+    class Meta:
+        ordering = ['ticket_type']
+        unique_together = ['event', 'ticket_type']
+
     @cached_property
-    def reservation_amount(self):
+    def available(self):
         reserved = self.reservations.aggregate(Sum('amount'))
+        amount = reserved.get('amount__sum')
+        if amount is None:
+            amount = 0
+        return self.amount - amount
+
+    @staticmethod
+    def reservation_amount(ticket_type):
+        reserved = Reservation.objects.filter(
+            ticket_type__ticket_type=ticket_type
+        ).aggregate(Sum('amount'))
         amount = reserved.get('amount__sum')
         if not amount:
             amount = 0
         return amount
 
-    @cached_property
-    def available(self):
-        reserved = self.reservation_amount
-        return self.amount - reserved
-
-    @cached_property
-    def reservation_avg_amount(self):
-        reserved = self.reservations.aggregate(Avg('amount'))
+    @staticmethod
+    def reservation_avg_amount(ticket_type):
+        reserved = Reservation.objects.filter(
+            ticket_type__ticket_type=ticket_type
+        ).aggregate(Avg('amount'))
         avg = reserved.get('amount__avg')
         if not avg:
             avg = 0
         return avg
 
-    @cached_property
-    def reservation_count(self):
-        return self.reservations.count()
+    @staticmethod
+    def sold_amount(ticket_type):
+        sold = Reservation.objects.filter(
+            validated=True,
+            ticket_type__ticket_type=ticket_type
+        ).aggregate(Sum('amount'))
+        amount = sold.get('amount__sum')
+        return amount
+
+    @staticmethod
+    def profit(ticket_type):
+        profit = Reservation.objects.filter(
+            ticket_type__ticket_type=ticket_type,
+            validated=True
+        ).aggregate(
+            profit=Sum(F('amount')*F('ticket_type__price'))
+            )['profit']
+        if profit is None:
+            profit = 0
+        return profit
 
     def reload_reservation_cache(self):
-        for key in ['reservation_amount',
-                    'available',
-                    'reservation_avg_amount',
-                    'reservation_count']:
+        for key in ['available']:
             if key in self.__dict__:
                 del self.__dict__[key]
 
