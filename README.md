@@ -59,3 +59,10 @@ Ticket management system which utilizes DRF, Redis and Celery
     - `payments/<int:id>` **GET/DELETE** Returns or deletes payment. 
         - `pay/` **POST** `{token:-}` Starts payment process.
 
+### Stats
+- `stats/`
+    - `events/` **GET** Returns a list of all events, with amount of reservations, tickets sold and profit.
+        - `top_popular/` **GET** Returns a list of top 5 events sorted by reservation amount.
+        - `top_profit/` **GET** Returns a list of top 5 most profitable events.
+        - `top_selling/` **GET** Returns a list of top 5 events sorted by amount of sold tickets.
+    - `tickets/` **GET** Returns a list of all ticket types with amount of reservations, average amount of tickets per reservation, tickets sold and profit from tickets.
