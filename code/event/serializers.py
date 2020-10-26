@@ -30,7 +30,8 @@ class ReservationSerializer(ModelSerializer):
     class Meta:
         model = Reservation
         name = 'reservation'
-        fields = ('id', 'created', 'ticket_type', 'amount')
+        fields = ('id', 'created', 'ticket_type', 'amount', 'validated')
+        read_only_fields = ('validated',)
 
     def validate(self, data):
         user = self.context['request'].user
@@ -38,6 +39,7 @@ class ReservationSerializer(ModelSerializer):
         q = Reservation.objects.filter(client=user, ticket_type=ticket)
         if q.count() != 0:
             raise ValidationError("Reservation has already been made")
+        return data
 
     def create(self, validated_data):
         validated_data['client'] = self.context['request'].user

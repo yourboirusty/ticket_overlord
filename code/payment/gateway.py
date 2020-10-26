@@ -13,7 +13,7 @@ class PaymentGateway:
             raise CardError("Your card has been declined")
         elif token == 'payment_error':
             raise PaymentError("Something went wrong with your transaction")
-        elif currency not in self.supported_currencies:
-            raise CurrencyError(f"Currency {currency} not supported")
+        # elif currency not in self.supported_currencies:
+        #     raise CurrencyError(f"Currency {currency} not supported")
         else:
             return PaymentResult(amount, currency)

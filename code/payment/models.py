@@ -2,7 +2,9 @@ from django.db import models
 from django.utils.functional import cached_property
 from django.conf import settings
 from payment.tasks import process_payment
-from payment.exceptions import MissingReservation, InvalidReservation
+from payment.exceptions import (MissingReservation,
+                                InvalidReservation,
+                                AlreadyPaidError)
 from celery.result import AsyncResult
 
 
@@ -30,14 +32,20 @@ class Payment(models.Model):
         res = AsyncResult(self.payment_id)
         return res.status
 
-    def pay(self, amount, token, currency):
+    def pay(self, amount, token, currency='EUR'):
         if not self.reservation:
             raise MissingReservation("Your reservation has timed out and was \
                 removed")
         if not self.reservation.check_validity():
             raise InvalidReservation("Your reservation has timed out")
-        self.payment_id = process_payment.delay(self.id,
-                                                amount,
-                                                currency,
-                                                token).id
+        if self.reservation.validated:
+            raise AlreadyPaidError("We would like more of your money, but it's\
+                illegal.")
+        pay_data = {
+            'payment_id': self.id,
+            'amount': amount,
+            'token': token,
+            'currency': currency
+        }
+        self.payment_id = process_payment.delay(**pay_data).id
         self.save()

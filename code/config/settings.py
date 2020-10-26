@@ -64,7 +64,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-LOGIN_REDIRECT_URL = 'event/reservations'
+LOGIN_REDIRECT_URL = '/event/reservations'
 
 ROOT_URLCONF = 'config.urls'
 
