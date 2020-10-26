@@ -7,7 +7,7 @@ Ticket management system which utilizes DRF, Redis and Celery
 ## How to launch
  1. Copy `.env.template` to `.env` and customize it to your liking
  2. `docker-compose up -d`
- 3. You can access the app on `localhost:8080`
+ 3. You can access the app on `localhost:8080`, database has been initialized and you are free to browse the API
 
 ## Main concepts
 ### Program flow
