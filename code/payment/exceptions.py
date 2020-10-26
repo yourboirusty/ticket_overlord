@@ -9,6 +9,10 @@ class MissingReservation(ValidationError):
     pass
 
 
+class AlreadyPaidError(ValidationError):
+    pass
+
+
 class CardError(Exception):
     pass
 

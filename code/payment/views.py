@@ -5,7 +5,9 @@ from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 from rest_framework.decorators import action
 from payment.exceptions import MissingReservation, InvalidReservation
-from payment.serializers import PaymentSerializer, PaymentCreationSerializer
+from payment.serializers import (PaymentSerializer,
+                                 PaymentCreationSerializer,
+                                 PaymentProcessSerializer)
 from payment.models import Payment
 
 
@@ -21,6 +23,8 @@ class PaymentViewset(mixins.RetrieveModelMixin,
     def get_serializer_class(self):
         if self.action == 'create':
             return PaymentCreationSerializer
+        if self.action =='pay':
+            return PaymentProcessSerializer
         return self.serializer_class
 
     def get_queryset(self):
@@ -30,12 +34,16 @@ class PaymentViewset(mixins.RetrieveModelMixin,
     @action(detail=True, methods=['post'])
     def pay(self, request, pk=None):
         payment = Payment.objects.get(pk=pk)
-        token = request.get('token')
-        if not token:
-            raise ValidationError('Token not included')
+        payment_serializer = self.get_serializer(request.data)
+        token = payment_serializer.data['token']
+        currency = payment_serializer.data['currency']
+        print('token '+token)
+        print('currency '+currency)
         try:
-            payment.pay(amount=payment.full_price, token=token, currency='EUR')
+            payment.pay(amount=payment.full_price,
+                        token=token,
+                        currency=currency)
         except (MissingReservation, InvalidReservation) as e:
             raise ValidationError(str(e))
-        serializer = self.get_serializer(payment)
+        serializer = PaymentSerializer(payment)
         return Response(serializer.data)

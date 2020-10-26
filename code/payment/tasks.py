@@ -12,7 +12,7 @@ Payment = None
 
 
 @shared_task
-def process_payment(payment_id, amount, currency, token):
+def process_payment(payment_id, amount, token, currency='EUR'):
     global Payment
     if not Payment:
         Payment = apps.get_model('payment', 'Payment')
@@ -20,10 +20,10 @@ def process_payment(payment_id, amount, currency, token):
     payment.error = None
     try:
         payment.amount, payment.currency = gateway.charge(
-            amount, currency, token)
+            amount=amount, token=token, currency=currency)
         payment.reservation.validated = True
         res = AsyncResult(payment.reservation.purge_id)
-        res.resolve()
+        res.revoke()
         payment.reservation.purge_id = None
         payment.reservation.save()
         payment.save()
