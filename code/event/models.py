@@ -100,6 +100,7 @@ class Reservation(models.Model):
                                     verbose_name="Ticket that's reserved",
                                     on_delete=models.CASCADE)
     amount = models.IntegerField(default=1)
+    validated = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ['client', 'ticket_type']

@@ -1,6 +1,7 @@
 from celery import shared_task
 from django.apps import apps
 from time import sleep
+from django.core.exceptions import ObjectDoesNotExist
 
 Reservation = None
 
@@ -14,7 +15,12 @@ def remove_on_timeout(reservation_id):
     if reservation.validated:
         raise Exception("Reservation paid")
     # Handle payment in process
-    if reservation.payment:
+    has_payment = False
+    try:
+        has_payment = (reservation.payment is not None)
+    except ObjectDoesNotExist:
+        pass
+    if has_payment:
         status = reservation.payment.payment_status()
         while status != 'SUCCESS':
             if status == 'NOT_STARTED':

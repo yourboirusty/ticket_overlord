@@ -1,15 +1,18 @@
 from django.db import models
 from django.utils.functional import cached_property
+from django.conf import settings
 from payment.tasks import process_payment
 from payment.exceptions import MissingReservation, InvalidReservation
 from celery.result import AsyncResult
 
 
 class Payment(models.Model):
-    reservation = models.ForeignKey('event.Reservation',
-                                    on_delete=models.CASCADE,
-                                    related_name='payment',
-                                    null=True)
+    client = models.ForeignKey(settings.AUTH_USER_MODEL,
+                               on_delete=models.CASCADE)
+    reservation = models.OneToOneField('event.Reservation',
+                                       on_delete=models.CASCADE,
+                                       related_name='payment',
+                                       null=True)
     payment_id = models.CharField("Celery task ID for payment processing",
                                   max_length=256,
                                   null=True)

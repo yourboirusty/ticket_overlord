@@ -24,7 +24,7 @@ class EventViewset(mixins.RetrieveModelMixin,
         if self.action == 'retrieve':
             return DetailedEventSerializer
         else:
-            return EventSerializer
+            return self.serializer_class
 
 
 class ReservationViewset(mixins.RetrieveModelMixin,
