@@ -16,13 +16,14 @@ Including another URLconf
 
 from django.urls import path, include
 from rest_framework.authtoken import views
-from event.urls import urlpatterns as event_urlpatterns
 from accounts.views import UserCreateAPIView
 from django.contrib import admin
 
 urlpatterns = [
     path('admin/', admin.site.urls, name='admin'),
     path('api-auth/', include('rest_framework.urls')),
+    path('event/', include('event.urls')),
+    path('payment/', include('payment.urls')),
     path('register/', UserCreateAPIView.as_view()),
     path('api-token-auth/', views.obtain_auth_token),
-] + event_urlpatterns
+]

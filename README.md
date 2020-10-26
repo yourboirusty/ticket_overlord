@@ -45,8 +45,16 @@ Ticket management system which utilizes DRF, Redis and Celery
 - `register/` **POST** `{username: -, email: -, password: -}` Creates account
 
 ### Events
-- `events/` **GET** Returns a list of events and their tickets sorted by date
-- `tickets/<int:id>` **GET** Returns details about ticket
-- `reservations/` **GET**/**POST** **AUTHORIZED_ONLY** Lists or creates reservations for authorized user.
-    - `reservations/<int:id>` **GET** **DELETE** Returns or deletes reservation.
+- `event/`
+    - `events/` **GET** Returns a list of events and their tickets sorted by date
+    - `tickets/<int:id>` **GET** Returns details about ticket
+    - `reservations/` **GET/POST** **AUTHORIZED_ONLY** Lists or creates reservations for authorized user.
+    - `reservations/<int:id>` **GET/DELETE** Returns or deletes reservation.
+
+### Payments
+- `payment/`
+    - `payments/` **POST** **AUTHORIZED_ONLY** `{reservation_id:-}` Creates a payment for reservation.
+    - `payments/` **GET** **AUTHORIZED_ONLY** Returns a list or creates payments for authorized user.
+    - `payments/<int:id>` **GET/DELETE** Returns or deletes payment. 
+        - `pay/` **POST** `{token:-}` Starts payment process.
 
