@@ -41,7 +41,7 @@ class AvailableTicketsTestCase(TransactionTestCase):
             amount=100
         )
         self.normal_ticket = AvailableTickets.objects.create(
-            ticket_type='VIP',
+            ticket_type='REG',
             event=self.event,
             price=15,
             amount=100
