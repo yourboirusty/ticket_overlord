@@ -43,9 +43,17 @@ class EventStatsViewset(ViewSet):
     def top_profit(self, request):
         queryset = Event.objects.all().annotate(
             profit=Sum(
-                F('tickets__reservations__amount') * F('tickets__price')
+                Case(
+                    When(tickets__reservations__validated=True,
+                         then=(
+                             F('tickets__reservations__amount')
+                             * F('tickets__price')
+                             )
+                         ),
+                    default=0
+                )
             )
-        ).order_by('-profit')[:5]
+        ).order_by('profit')[:5]
         serializer = EventStatSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -55,7 +63,7 @@ class EventStatsViewset(ViewSet):
             reservation_amount=Sum(
                 F('tickets__reservations__amount')
             )
-        ).order_by('-reservation_amount')[:5]
+        ).order_by('reservation_amount')[:5]
         serializer = EventStatSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -67,6 +75,6 @@ class EventStatsViewset(ViewSet):
             default=0)
         queryset = Event.objects.all().annotate(
             sold_amount=Sum(case)
-            ).order_by('-sold_amount')[:5]
+            ).order_by('sold_amount')[:5]
         serializer = EventStatSerializer(queryset, many=True)
         return Response(serializer.data)

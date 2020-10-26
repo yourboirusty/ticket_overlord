@@ -13,4 +13,4 @@ class EventStatSerializer(serializers.Serializer):
     event = serializers.CharField(max_length=64, source='__str__')
     reservation_amount = serializers.IntegerField()
     sold_amount = serializers.IntegerField()
-    profit = serializers.DecimalField(max_digits=19, decimal_places=2)
+    profit = serializers.IntegerField()
