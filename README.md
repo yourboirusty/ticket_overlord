@@ -34,8 +34,9 @@ Ticket management system which utilizes DRF, Redis and Celery
 - Database operations are done using queryset and Q operations when viable to let Postgres do its thing using as few SQL commands as possible
 
 ## Issues
+- Probably should have created object factories (factoryboy, model momma) for testing purposes, but the app got out of hand before I realized it
 - Tests for payment application are failing due to wonky Celery integration with test database. Fix (spawning separate worker in test environment and allowing for database queries during test in TransactionTestCase) provided for event application aren't working for the other app.
-- Code is a bit monolythic, but due to time constraints I have opted out of refactoring the whole thing.
+- Code is a bit monolithic, but due to time constraints I have opted out of refactoring the whole thing.
 
 ## API
 ### Authorization
