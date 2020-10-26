@@ -1,12 +1,10 @@
 from celery import shared_task
 from celery.result import AsyncResult
-from event.tasks import remove_on_timeout
 from payment.gateway import PaymentGateway
 from payment.exceptions import (CardError,
                                 PaymentError,
                                 CurrencyError)
 from django.apps import apps
-from config.celery import app
 
 gateway = PaymentGateway()
 
