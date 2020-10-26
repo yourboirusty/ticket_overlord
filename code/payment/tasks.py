@@ -23,6 +23,13 @@ def process_payment(payment_id, amount, currency, token):
     try:
         payment.amount, payment.currency = gateway.charge(
             amount, currency, token)
+        payment.reservation.validated = True
+        res = AsyncResult(payment.reservation.purge_id)
+        res.resolve()
+        payment.reservation.purge_id = None
+        payment.reservation.save()
+        payment.save()
     except (CardError, PaymentError, CurrencyError) as e:
         payment.error = str(e)
-    payment.save()
+        payment.save()
+        raise Exception('Payment error')
