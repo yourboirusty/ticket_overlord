@@ -11,12 +11,18 @@ Ticket management system which utilizes DRF, Redis and Celery
 
 ## Main concepts
 ### Program flow
-- frontend can get data using dedicated endpoints
-- `events/` will return a generic list with only ids of available ticket types
-- `events/<pk>` will return a detailed view about the event
-- after logging in, user can create a reservation and will be able to get information when the reservation was made
-- the reservation will be valid for ~15 minutes
-- if the user tries to process payment after reservation has timed out, he will be met with an error
+- `event/events/` will return a generic list with only ids of available ticket types
+- `event/events/<pk>` will return a detailed view about the event with full ticket types
+- Frontend can evaluate if it is possible to reserve a ticket by 'available' field to avoid unnecessary requests,
+- In case user needs to login or create an account `/api-auth/login/` and `/register/` endpoints are available,
+- If user is logged in, they can access `/event/reservations/` to view their reservations. If `validated` field is set to `False`, frontend should countdown to 15 minutes past `created` field to indicate how much time is left before reservation expires,
+- If a user wishes to reserve a ticket, FE should call **POST** on `/event/reservations/` with a structure containing `ticket_type` and `amount` of tickets,
+- FE shouldn't allow the user to make multiple reservations, as they will be bounced back by the backend,
+- If a user wants to start the payment, FE should call **POST** on `/payment/payments` with a self-documenting `reservation_id`,
+- To start payment procedure, FE should call **POST** on `/payment/payments/<int:id>/pay/` with a `token` for transaction, which is passed to payment gateway,
+- State of the procedure is available under `payment_status`, and any errors on `error` fields when using **GET** on `/payment/payments/<int:id>/`,
+- While payment process is not `FAILURE` or `SUCCESS` the reservation will not be removed.
+
 
 ### Caching
 - all computed fields that will have to be accessed frequently (eg. ticket availability) are cached for 15 minutes,
