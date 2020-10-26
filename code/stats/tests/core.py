@@ -9,6 +9,10 @@ now = timezone.now()
 
 
 class StatTestCase(TestCase):
+
+    def additional_setUp(self):
+        pass
+
     def setUp(self):
         self.event1 = Event.objects.create(name="Test Event",
                                            date=timezone.now() +
@@ -52,3 +56,4 @@ class StatTestCase(TestCase):
                 User.objects.create_user(username="user"+str(n),
                                          password="pwd"+str(n))
             )
+        self.additional_setUp()
