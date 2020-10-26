@@ -24,6 +24,7 @@ class DetailedEventSerializer(ModelSerializer):
         name = 'event'
         fields = ('id', 'name', 'date', 'tickets')
 
+
 class ReservationSerializer(ModelSerializer):
 
     class Meta:
