@@ -10,6 +10,30 @@ now = timezone.now()
 
 class StatTestCase(TestCase):
 
+    def test_setUp(self):
+        self.tickets = [self.vip_ticket1,
+                        self.vip_ticket2,
+                        self.reg_ticket1,
+                        self.reg_ticket2]
+
+        for ticket in self.tickets:
+            for user in self.users:
+                res = ticket.reserve(user=user, amount=randint(2, 15))
+                if randint(0, 1):
+                    res.validated = True
+                    res.save()
+
+        self.expected_values = list()
+        self.events = [self.event1, self.event2]
+        for event in self.events:
+            results = {
+                'event': str(event),
+                'reservation_amount': event.reservation_amount,
+                'sold_amount': event.sold_amount,
+                'profit': event.profit,
+            }
+            self.expected_values.append(results)
+
     def additional_setUp(self):
         pass
 

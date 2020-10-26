@@ -38,6 +38,16 @@ echo '--------------------------'
 echo ''
 ownership
 
+
+echo ''
+echo '--------------------------'
+echo 'Initializing database with'
+echo 'example data'
+echo '--------------------------'
+echo ''
+python manage.py shell < ./scripts/initialize_db.py
+
+
 echo ''
 echo '--------------------------'
 echo 'Run command'
