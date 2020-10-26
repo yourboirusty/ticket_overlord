@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.functional import cached_property
 from payment.tasks import process_payment
 from payment.exceptions import MissingReservation, InvalidReservation
+from celery.result import AsyncResult
 
 
 class Payment(models.Model):
@@ -19,6 +20,12 @@ class Payment(models.Model):
     @cached_property
     def full_price(self):
         return self.reservation.amount * self.reservation.ticket_type.price
+
+    def payment_status(self):
+        if not self.payment_id:
+            return "NOT_STARTED"
+        res = AsyncResult(self.payment_id)
+        return res.status
 
     def pay(self, amount, token, currency):
         if not self.reservation:
