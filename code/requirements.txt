@@ -6,3 +6,5 @@ djangorestframework
 django-redis
 django-celery-results
 mock
+gunicorn
+whitenoise
